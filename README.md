@@ -1,3 +1,6 @@
+# Halo-Frontend
+Frontend built out with Vue3 and Typescript and conntected with WebSockets. Will have CRUD operations and relational data. Will have proper use of Vue3 Composition API.
+
 # av-halo-frontend
 
 This template should help get you started developing with Vue 3 in Vite.
