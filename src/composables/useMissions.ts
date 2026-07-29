@@ -1,35 +1,97 @@
 // src/composables/useMissions.ts
 import { ref } from 'vue'
 import { api } from '@/services/api'
-import type { Mission, MissionStatus } from '@/types/fleet'
+import type { Mission, MissionRequest } from '@/types/fleet'
 import { useFleetSocket } from './useFleetSocket'
-
-interface MissionRequest { name: string; description: string; status: MissionStatus }
 
 export function useMissions() {
   const missions = ref<Mission[]>([])
-  const loading = ref(false)
+  const isLoading = ref(false)
+  const errorMsg = ref<string | null>(null)
 
-  const fetchMissions = async () => {
-    loading.value = true
-    missions.value = (await api.get<Mission[]>('/missions')).data
-    loading.value = false
+  const fetchMissions = async (): Promise<void> => {
+    isLoading.value = true
+    errorMsg.value = null
+    
+    try {
+      const response = await api.get<Mission[]>('/missions')
+      missions.value = response.data
+    } catch (err) {
+      console.error('Failed to sync global operational missions list:', err)
+      errorMsg.value = 'Failed to load tracking missions.'
+    } finally {
+      isLoading.value = false
+    }
   }
 
-  const createMission = (req: MissionRequest) => api.post('/missions', req)
-  const updateMission = (id: number, req: MissionRequest) => api.put(`/missions/${id}`, req)
-  const deleteMission = (id: number) => api.delete(`/missions/${id}`)
-
-  useFleetSocket((event) => {
-    if (event.type === 'MISSION_UPDATED') {
-      const updated = event.payload as Mission
-      const idx = missions.value.findIndex((m) => m.id === updated.id)
-      if (idx !== -1) missions.value[idx] = updated
-      else missions.value.push(updated)
-    } else if (event.type === 'MISSION_DELETED') {
-      missions.value = missions.value.filter((m) => m.id !== (event.payload as number))
+  const createMission = async (request: MissionRequest): Promise<void> => {
+    try {
+      await api.post('/missions', request)
+      // manual fetch is not required here because the WebSocket broadcast will trigger a reactive sync across all clients.
+    } catch (err) {
+      console.error('Failed to create new operational flight mission configuration:', err)
+      throw err
     }
-  })
+  }
 
-  return { missions, loading, fetchMissions, createMission, updateMission, deleteMission }
+  const updateMission = async (id: number, request: MissionRequest): Promise<void> => {
+    try {
+      await api.put(`/missions/${id}`, request)
+    } catch (err) {
+      console.error(`Failed to dispatch mission update body for ID ${id}:`, err)
+      throw err
+    }
+  }
+
+  const deleteMission = async (id: number): Promise<void> => {
+    try {
+      await api.delete(`/missions/${id}`)
+    } catch (err) {
+      console.error(`Failed to terminate mission configuration entity reference ID ${id}:`, err)
+      throw err
+    }
+  }
+
+  // --- live stream processors---
+
+  const handleSocketMutation = (event: { type: string; payload: unknown }) => {
+    switch (event.type) {
+      case 'MISSION_UPDATED': {
+        const updatedMission = event.payload as Mission
+        const targetIndex = missions.value.findIndex(mission => mission.id === updatedMission.id)
+        
+        if (targetIndex !== -1) {
+          // force update the existing mission in the reactive array
+          missions.value[targetIndex] = updatedMission
+        } else {
+          missions.value.push(updatedMission)
+        }
+        break
+      }
+
+      case 'MISSION_DELETED': {
+        const purgedMissionId = Number(event.payload)
+        missions.value = missions.value.filter(mission => mission.id !== purgedMissionId)
+        break
+      }
+
+      default:
+        // filter out irrelevant events to avoid unnecessary reactivity triggers
+        break
+    }
+  }
+
+  // websocket listener
+  const { isConnected } = useFleetSocket(handleSocketMutation)
+
+  return { 
+    missions, 
+    loading: isLoading, 
+    error: errorMsg,
+    isLive: isConnected,
+    fetchMissions, 
+    createMission, 
+    updateMission, 
+    deleteMission 
+  }
 }
