@@ -30,6 +30,7 @@ const confirmDecommission = async (id: number, name: string) => {
     }
   }
 }
+
 </script>
 
 <template>
@@ -74,7 +75,7 @@ const confirmDecommission = async (id: number, name: string) => {
         class="elevation-0"
       >
         <!-- Status column -->
-        <template #item:status="{ item }">
+        <template #[`item.status`]="{ item }">
           <v-chip 
             :color="getDroneStatusColor(item.status)" 
             size="small" 
@@ -86,7 +87,7 @@ const confirmDecommission = async (id: number, name: string) => {
         </template>
 
         <!-- battery progress tracking column layout -->
-        <template #item:batteryPercent="{ item }">
+        <template #[`item.batteryPercent`]="{ item }">
           <v-progress-linear 
             :model-value="item.batteryPercent" 
             :color="getBatteryColor(item.batteryPercent)"
@@ -102,7 +103,7 @@ const confirmDecommission = async (id: number, name: string) => {
         </template>
 
         <!-- Action buttons -->
-        <template #item:actions="{ item }">
+        <template #[`item.actions`]="{ item }">
           <v-btn 
             icon="mdi-delete-outline" 
             size="small" 
