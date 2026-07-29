@@ -6,6 +6,7 @@ import { useMissions } from '@/composables/useMissions'
 import MissionFormDialog from '@/components/MissionFormDialog.vue'
 import { MissionStatus } from '@/types/fleet'
 import type { Mission } from '@/types/fleet'
+import { useFleetStyles } from '@/composables/useFleetStyles'
 
 const router = useRouter()
 
@@ -20,23 +21,15 @@ const {
   deleteMission 
 } = useMissions()
 
+// color mapping
+const { getMissionStatusColor, } = useFleetStyles()
+
 const isDialogOpen = ref(false)
 const activeEditingTarget = ref<Mission | null>(null)
 
 onMounted(() => {
   fetchMissions()
 })
-
-/** color maping for mission status */
-const getStatusColor = (status: MissionStatus): string => {
-  switch (status) {
-    case MissionStatus.Planning: return 'blue-grey-lighten-1'
-    case MissionStatus.Active: return 'info'
-    case MissionStatus.Completed: return 'success'
-    case MissionStatus.Aborted: return 'error'
-    default: return 'grey'
-  }
-}
 
 const openCreateModal = () => {
   activeEditingTarget.value = null
@@ -60,7 +53,8 @@ const handleSaveTransaction = async (payload: { name: string; description: strin
     }
     isDialogOpen.value = false
   } catch (err) {
-    window.alert('Failed to process mission modifications. Check backend server logs.')
+    window.alert('Failed to process mission modifications. Check backend server logs.' )
+    console.log(err)
   }
 }
 
@@ -78,6 +72,7 @@ const handlePurgeRequest = async (id: number, name: string, status: MissionStatu
       await deleteMission(id)
     } catch (err) {
       window.alert('Delete failed. Ensure no active drone airframes remain assigned to this mission.')
+      console.log(err)
     }
   }
 }
@@ -156,7 +151,7 @@ const tableHeaders = [
         <!-- Dynamic Status Tag Element Component mapping -->
         <template #item:status="{ item }">
           <v-chip 
-            :color="getStatusColor(item.status)" 
+            :color="getMissionStatusColor(item.status)" 
             size="small" 
             variant="flat"
             class="font-weight-black text-uppercase tracking-wide"

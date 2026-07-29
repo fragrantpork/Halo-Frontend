@@ -2,38 +2,14 @@
 import { onMounted } from 'vue'
 import { useDrones } from '@/composables/useDrones'
 import { DroneStatus } from '@/types/fleet'
+import { useFleetStyles } from '@/composables/useFleetStyles'
 
 const { drones, loading, error, isLive, fetchDrones, deleteDrone } = useDrones()
-
+const { getDroneStatusColor, getBatteryColor } = useFleetStyles()
 onMounted(() => {
   fetchDrones()
 })
 
-/**
- * Maps drone operational status to color-coded chips for quick visual assessment of fleet readiness.
- */
-const getStatusColor = (status: DroneStatus): string => {
-  switch (status) {
-    case DroneStatus.Ready: return 'success'
-    case DroneStatus.Flying: return 'info'
-    case DroneStatus.Charging: return 'warning'
-    case DroneStatus.Maintenance: return 'error'
-    default: return 'grey'
-  }
-}
-
-/**
- * Maps battery percentage values to color-coded progress bars for quick visual assessment of drone fuel levels.
- */
-const getBatteryColor = (percent: number): string => {
-  if (percent > 50) return 'success'
-  if (percent > 20) return 'warning'
-  return 'error'
-}
-
-/**
- * Defines the column headers for the drone fleet data table, including sorting and alignment options.
- */
 const tableHeaders = [
   { title: 'Callsign / Name', key: 'name', sortable: true },
   { title: 'Operational Status', key: 'status', sortable: true },
@@ -42,9 +18,7 @@ const tableHeaders = [
   { title: 'Management Actions', key: 'actions', sortable: false, align: 'end' as const },
 ]
 
-/**
- * Production-safe deletion interceptor to prevent accidental pilot misclicks.
- */
+//delete drone with confirmation prompt
 const confirmDecommission = async (id: number, name: string) => {
   const confirmed = window.confirm(`Are you absolutely sure you want to decommission drone unit "${name}"?`)
   if (confirmed) {
@@ -52,6 +26,7 @@ const confirmDecommission = async (id: number, name: string) => {
       await deleteDrone(id)
     } catch (err) {
       window.alert('Failed to delete drone. Check backend database logs.')
+      console.log(err)
     }
   }
 }
@@ -65,7 +40,7 @@ const confirmDecommission = async (id: number, name: string) => {
         <div class="d-flex align-center ga-3">
           <h1 class="text-h4 font-weight-black">Drone Fleet Telemetry Dashboard</h1>
           
-          <!-- Live Status Chip -->
+          <!-- live status chip-->
           <v-chip
             :color="isLive ? 'success' : 'error'"
             size="x-small"
@@ -98,10 +73,10 @@ const confirmDecommission = async (id: number, name: string) => {
         hover
         class="elevation-0"
       >
-        <!-- Custom slot templates for each column to enhance UX with dynamic styling and interactivity -->
+        <!-- Status column -->
         <template #item:status="{ item }">
           <v-chip 
-            :color="getStatusColor(item.status)" 
+            :color="getDroneStatusColor(item.status)" 
             size="small" 
             variant="tonal"
             class="font-weight-medium text-uppercase"
@@ -126,7 +101,7 @@ const confirmDecommission = async (id: number, name: string) => {
           </v-progress-linear>
         </template>
 
-        <!-- Action buttons for each row, with safety interlocks -->
+        <!-- Action buttons -->
         <template #item:actions="{ item }">
           <v-btn 
             icon="mdi-delete-outline" 

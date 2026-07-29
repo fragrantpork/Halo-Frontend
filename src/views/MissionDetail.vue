@@ -1,24 +1,24 @@
-<!-- src/views/MissionDetail.vue -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/services/api'
 import { useFleetSocket } from '@/composables/useFleetSocket'
-import { DroneStatus, MissionStatus } from '@/types/fleet'
 import type { Drone, Mission } from '@/types/fleet'
+import { useFleetStyles } from '@/composables/useFleetStyles'
 
 const route = useRoute()
 const router = useRouter()
 
 const missionId = Number(route.params.id)
 
+// get color mapping
+const { getMissionStatusColor, getDroneStatusColor } = useFleetStyles()
+
 const mission = ref<Mission | null>(null)
 const assignedDrones = ref<Drone[]>([])
 
 const isLoading = ref(false)
 const errorMsg = ref<string | null>(null)
-
-// --- API Sync Routines ---
 
 /** fetch active mission details and assign drones from backend*/
 const fetchMissionContext = async () => {
@@ -36,7 +36,7 @@ const fetchMissionContext = async () => {
   } catch (err) {
     console.error('Failed to resolve tactical mission details context:', err)
     errorMsg.value = 'Could not retrieve operational data for this mission configuration.'
-  } final {
+  } finally {
     isLoading.value = false
   }
 }
@@ -44,28 +44,6 @@ const fetchMissionContext = async () => {
 onMounted(() => {
   fetchMissionContext()
 })
-
-// --- status color map ---
-
-const getMissionStatusColor = (status: MissionStatus): string => {
-  switch (status) {
-    case MissionStatus.Planning: return 'blue-grey-lighten-1'
-    case MissionStatus.Active: return 'info'
-    case MissionStatus.Completed: return 'success'
-    case MissionStatus.Aborted: return 'error'
-    default: return 'grey'
-  }
-}
-
-const getDroneStatusColor = (status: DroneStatus): string => {
-  switch (status) {
-    case DroneStatus.Ready: return 'success'
-    case DroneStatus.Flying: return 'info'
-    case DroneStatus.Charging: return 'warning'
-    case DroneStatus.Maintenance: return 'error'
-    default: return 'grey'
-  }
-}
 
 const droneHeaders = [
   { title: 'Airframe Callsign', key: 'name', sortable: true },
