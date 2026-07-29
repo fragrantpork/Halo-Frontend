@@ -27,7 +27,7 @@ onMounted(() => {
   fetchMissions()
 })
 
-/** Maps color to status */
+/** color maping for mission status */
 const getStatusColor = (status: MissionStatus): string => {
   switch (status) {
     case MissionStatus.Planning: return 'blue-grey-lighten-1'

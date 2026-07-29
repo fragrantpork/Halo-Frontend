@@ -1,4 +1,3 @@
-
 import { ref, onMounted, onUnmounted } from 'vue'
 
 import type { Drone, Mission } from '@/types/fleet';
@@ -13,7 +12,7 @@ export type FleetEventType =
 
 export interface FleetEvent {
   type: FleetEventType;
-  payload: Drone | Mission | number | string; // Strongly typed payload mappings
+  payload: Drone | Mission | number | string;
 }
 
 export function useFleetSocket(onEvent: (event: FleetEvent) => void) {
